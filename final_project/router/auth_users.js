@@ -34,7 +34,6 @@ const authenticatedUser = (username, password) => {
 
 //only registered users can login
 const app = express();
-app.use(session({secret:"fingerprint"},resave=true,saveUninitialized=true));
 app.use(express.json());
 
 regd_users.post("/login", (req,res) => {
@@ -66,8 +65,34 @@ regd_users.post("/login", (req,res) => {
 
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+    const isbn = req.params.isbn;
+    let filtered_book = books[isbn]
+    if (filtered_book) {
+        let review = req.query.review;
+        let reviewer = req.session.authorization['username'];
+        if(review) {
+            filtered_book['reviews'][reviewer] = review;
+            books[isbn] = filtered_book;
+        }
+        res.send(`The review for the book with ISBN  ${isbn} has been added/updated.`);
+    }
+    else{
+        res.send("Unable to find this ISBN!");
+    }
+  });
+
+//delete reviews, constrained to current user
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+    const isbn = req.params.isbn;
+    let reviewer = req.session.authorization['username'];
+    let filtered_review = books[isbn]["reviews"];
+    if (filtered_review[reviewer]){
+        delete filtered_review[reviewer];
+        res.send(`User ${reviewer} review for ISBN  ${isbn} deleted.`);
+    }
+    else{
+        res.send("Not able to delete other user's reviews.");
+    }
 });
 
 module.exports.authenticated = regd_users;
